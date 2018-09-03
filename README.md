@@ -1,7 +1,6 @@
 ## About DopmainReputationQuery
 
-基于[威胁情报厂商服务API]( https://redqueen.tj-un.comAPI)的域名信誉查询系统
-
+基于[威胁情报厂商服务平台API]( https://redqueen.tj-un.comAPI)的域名信誉查询系统
 
 
 ## Installing
