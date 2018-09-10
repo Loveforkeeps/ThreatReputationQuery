@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser(description="域名信誉查询工具",add_help
 parser.add_argument('-f','--file',type=argparse.FileType('r'),required=True,help='select a task file')
 parser.add_argument('-o','--output',type=str,help='specify the output csv file path and name')
 parser.add_argument('-a','--all',action='store_true',help="output all query results")
+parser.add_argument('-d','--debug',action='store_true',help="debug model")
 args = parser.parse_args()
 
 if not args.output:
@@ -84,7 +85,7 @@ def rep2csv(jsondata):
         try:
             domain_reputations = j["response_data"]["domain_reputation"]
         except KeyError as e:
-            print("服务器返回消息：{}".format(j["response_status"]['message']))
+            print(u"Response：{}".format(j["response_status"]['message']))
             exit(0)
         with open(args.output, 'ab') as f:
             dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
@@ -115,8 +116,10 @@ def main():
             dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
             dw.writeheader()
         f = args.file.read().splitlines()
-        for i in range(0,len(f),10):
+        for i in range(0,len(f),10): 
             t = f[i:i+10]
+            if args.debug:
+                print t
             print "\n".join(t)
             rep2csv(domainRep(t))
     except KeyboardInterrupt:
