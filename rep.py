@@ -81,8 +81,12 @@ def rep2csv(jsondata):
     try:
         j=json.loads(jsondata)
         # print(j["response_data"]["domain_reputation"])
-        domain_reputations = j["response_data"]["domain_reputation"]
-        with open(args.output, 'a') as f:
+        try:
+            domain_reputations = j["response_data"]["domain_reputation"]
+        except KeyError as e:
+            print("服务器返回消息：{}".format(j["response_status"]['message']))
+            exit(0)
+        with open(args.output, 'ab') as f:
             dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
 
             for i in domain_reputations:
@@ -104,23 +108,10 @@ def rep2csv(jsondata):
         raise
         return 0
 
-def json_csv(data,filename):
-    """  将iocs的JSON数据转换为CSV """
-    # global SCORELEVEL
-    with open(filename, 'a') as f:
-        dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
-        for row in data:
-            # print(row)
-            row.update(row['reputation'][0])
-            row.pop('reputation','hash')
-            # print(row)
-            dw.writerow(row)
-    return 0
-
 @functime
 def main():
     try:
-        with open(args.output, 'w') as f:
+        with open(args.output, 'wb') as f:
             dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
             dw.writeheader()
         f = args.file.read().splitlines()
