@@ -2,38 +2,77 @@
 # -*- coding: utf-8 -*-
 # Author: Erdog
 
-from com.aliyun.api.gateway.sdk import client
-from com.aliyun.api.gateway.sdk.http import request
-from com.aliyun.api.gateway.sdk.common import constant
+
 import json
-import sys,io
+import sys
+import io
 import argparse
 import csv
 from pprint import pprint
 import datetime
+import threading
+from threading import Thread
+from multiprocessing import Manager
+import time
 
-# 解决错误UnicodeEncodeError: 'ascii' codec can't encode characters in position 5-6
-reload(sys)
-sys.setdefaultencoding('utf-8')
+
+# Python版本识别
+if sys.version > '3':
+    PY3 = True
+else:
+    PY3 = False
+
+if PY3:
+    print("ERROR:受阿里云SDK限制暂不支持Python3")
+    exit(0)
+else:
+    from Queue import Queue
+    from com.aliyun.api.gateway.sdk import client
+    from com.aliyun.api.gateway.sdk.http import request
+    from com.aliyun.api.gateway.sdk.common import constant
+    # 解决错误UnicodeEncodeError: 'ascii' codec can't encode characters in position 5-6
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+
+# log配置
+import logging
+import inspect
+
+# logging.basicConfig(
+#     filename="{}.log".format(''.join(__file__.split('.')[:-1])), filemode='w', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(
+    filename="{}.log".format(''.join(__file__.split('.')[:-1])), filemode='w', format='%(message)s', level=logging.DEBUG)
+
+
+def get_current_function_name():
+    return inspect.stack()[1][3]
+
 
 # 接受用户端参数
-parser = argparse.ArgumentParser(description="域名信誉查询工具",add_help=True,version="Beta1.0")
-parser.add_argument('-f','--file',type=argparse.FileType('r'),required=True,help='select a task file')
-parser.add_argument('-o','--output',type=str,help='specify the output csv file path and name')
-parser.add_argument('-a','--all',action='store_true',help="output all query results")
-parser.add_argument('-d','--debug',action='store_true',help="debug model")
+parser = argparse.ArgumentParser(
+    description=u"API信誉查询工具", add_help=True, version="Beta2.1")
+parser.add_argument('-f', '--file', type=argparse.FileType('r'),
+                    required=True, help='select a task file')
+parser.add_argument(
+    '-t', '--type', choices=["ip", "domain", "url"], required=True, help='select a task type')
+parser.add_argument('-o', '--output', type=str,
+                    help='specify the output file path and name')
+# parser.add_argument('-a', '--all', action='store_true',
+#                     help="output all query results")
 args = parser.parse_args()
 
 if not args.output:
-    args.output = args.file.name+".csv"
+    args.output = args.file.name+".json"
 else:
-    args.output = args.output+".csv"
+    args.output = args.output+".json"
 
+q = Queue(5)
+threadLock = threading.Lock()
 
 HOST = "https://api.tj-un.com"
 URL = "/v1/reputation"
 
-with io.open("config","r",encoding="utf8") as f:
+with io.open("config", "r", encoding="utf8") as f:
     try:
         j = json.load(f)
         APPKEY = str(j[u"Appkey"])
@@ -43,26 +82,27 @@ with io.open("config","r",encoding="utf8") as f:
         print(u"config文件中参数异常！")
         exit(0)
 
-
 cli = client.DefaultClient(app_key=APPKEY, app_secret=APPSECRET)
+req_post = request.Request(
+    host=HOST, protocol=constant.HTTPS, url=URL, method="POST", time_out=120)
 
-req_post = request.Request(host=HOST, protocol=constant.HTTPS, url=URL, method="POST", time_out=120)
 
 def functime(func):
-    def wap(*args,**kw):
-       local_time = datetime.datetime.now()
-       func(*args, **kw)
-       times = (datetime.datetime.now() - local_time).seconds
-       print 'Run time is {} minutes {} seconds!'.format(times/60,times%60)
+    def wap(*args, **kw):
+        local_time = datetime.datetime.now()
+        func(*args, **kw)
+        times = (datetime.datetime.now() - local_time).seconds
+        print('Run time is {} minutes {} seconds!'.format(times/60, times % 60))
     return wap
 
-def domainRep(tasklist):
-    """ 域名信誉查询,返回response content """
+
+def apiRep(tasklist, retry=5, gap=0.5):
+    """ 信誉查询,返回response content """
     paload = {
         "token": TOKEN,
         "value": tasklist,
-        "type": "domain",
-        "struct": "domain_reputation"
+        "type": args.type,
+        "struct": "{}_reputation".format(args.type)
     }
     req_post.set_body(paload)
 
@@ -71,60 +111,79 @@ def domainRep(tasklist):
     res = cli.execute(req_post)
     # print(res[0])
     if res[0] == 200:
-        return res[2]
+        content = json.loads(res[2], encoding='utf-8')
+        if content["response_status"]["code"] == 1:
+            return res[2]
+        elif content["response_status"]["code"] == 9:
+            if retry > 0:
+                print(res[2])
+                print(u'{}查询受限!'.format(tasklist))
+                time.sleep(gap)
+                retry = retry - 1
+                return apiRep(tasklist, retry, gap + 0.5)
+            else:
+                print(u"{}查询失败!".format(tasklist))
+                logging.error("函数{}接收到tasklist:{}".format(
+                    get_current_function_name(), tasklist))
+                return False
+        else:
+            print(u"查询:{}异常:{}".format(','.join(tasklist), content["response_status"]['detail']))
+            return False
     else:
-        print("!!!!!")
-        print(res)
-        return 0
+        print("Response {}: Retry...{}....".format(res[0], tasklist[0]))
+        time.sleep(1)
+        return apiRep(tasklist)
+        # print(res)
 
-def rep2csv(jsondata):
-    """ 解析信誉查询结果并保存为csv文件 """
+
+def saveJson(jsondata):
+    global ml
     try:
-        j=json.loads(jsondata)
-        # print(j["response_data"]["domain_reputation"])
-        try:
-            domain_reputations = j["response_data"]["domain_reputation"]
-        except KeyError as e:
-            print(u"Response：{}".format(j["response_status"]['message']))
-            exit(0)
-        with open(args.output, 'ab') as f:
-            dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
-
-            for i in domain_reputations:
-                # pprint(i)
-                row = {'domain':i['domain']}
-                if len(i['reputation']):
-                    for repu in i['reputation']:
-                        row.update(repu)
-                        row["tag"] = ",".join(repu['tag'])
-                        # pprint(row)
-                        dw.writerow(row)
-                else:
-                    if args.all:
-                        dw.writerow(row)
-    except ValueError as e:
-            print(u"解析失败:{}".format(e))
+        if jsondata:
+            ml.append(jsondata)
     except Exception as e:
-        print(u"未知异常: {}".format(e))
-        raise
-        return 0
+        logging.error("函数{}接收到参数{}:".format(
+            get_current_function_name(), locals()))
+
+
+def worker():
+    while True:
+        tasks = q.get()
+        js = apiRep(tasks)
+        if js:
+            saveJson(js)
+            q.task_done()
+        else:
+            q.task_done()
+            logging.error("异常任务:{}".format('\n'.join(tasks)))
+
 
 @functime
 def main():
     try:
-        with open(args.output, 'wb') as f:
-            dw = csv.DictWriter(f, [u'domain',u'category', u'score',u'tag', u'timestamp'])
-            dw.writeheader()
+        t = Thread(target=worker)
+        t.daemon = True
+        t.start()
         f = args.file.read().splitlines()
-        for i in range(0,len(f),10): 
-            t = f[i:i+10]
-            if args.debug:
-                print t
-            print "\n".join(t)
-            rep2csv(domainRep(t))
+        batchSize = 1
+        for i in range(0, len(f), batchSize):
+            q.put(f[i:i+batchSize])
+            time.sleep(0.05)
+        q.join()
     except KeyboardInterrupt:
-        print("\nWhen Querying {}... User Termined! ".format(i+10))
-        
-                
+        print("\nWhen Querying {}... User Termined! ".format(i+batchSize))
+        return 127
+    finally:
+        # 最终结果存储
+        with open(args.output, 'w') as f:
+            fl = '\n'.join(list(ml))
+            f.writelines(fl)
+    if q.empty():
+        print("Task Over!")
+        return 0
+
+
 if __name__ == '__main__':
+    manager = Manager()
+    ml = manager.list()
     main()
