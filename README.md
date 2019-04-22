@@ -1,4 +1,4 @@
-## About DopmainReputationQuery
+## About ThreatReputationQuery
 
 基于[威胁情报厂商服务平台API]( https://redqueen.tj-un.comAPI)的信誉查询系统
 
@@ -19,12 +19,12 @@ The recommended version for Python is **2.7.x*
 
 
 
-## Using DopmainReputationQuery
+## Using ThreatReputationQuery
 
 ```shell
 # python Rep.py -h
 
-usage: rep_thread_Pub.py [-h] [-v] -f FILE -t {ip,domain,url} [-o OUTPUT]
+usage: rep.py [-h] [-v] -f FILE -t {ip,domain,url} [-o OUTPUT]
 
 API信誉查询工具
 
@@ -62,3 +62,8 @@ Run time is 0 minutes 1 seconds!
 ```
 
 查询结果将输出在result目录中的123.json文件中
+
+
+
+### ToDo:
+* 在云端API允许的情况下用多线程提高查询效率
