@@ -117,17 +117,18 @@ def apiRep(tasklist, retry=5, gap=0.5):
         elif content["response_status"]["code"] == 9:
             if retry > 0:
                 print(res[2])
-                print(u'{}查询受限!'.format(tasklist))
+                print(u"{}查询受限!".format(tasklist))
                 time.sleep(gap)
                 retry = retry - 1
                 return apiRep(tasklist, retry, gap + 0.5)
             else:
                 print(u"{}查询失败!".format(tasklist))
-                logging.error("函数{}接收到tasklist:{}".format(
+                logging.error(u"函数{}接收到tasklist:{}".format(
                     get_current_function_name(), tasklist))
                 return False
         else:
-            print(u"查询:{}异常:{}".format(','.join(tasklist), content["response_status"]['detail']))
+            print(u"查询:{}异常:{}".format(','.join(tasklist),
+                                       content["response_status"]['detail']))
             return False
     else:
         print("Response {}: Retry...{}....".format(res[0], tasklist[0]))
@@ -142,20 +143,20 @@ def saveJson(jsondata):
         if jsondata:
             ml.append(jsondata)
     except Exception as e:
-        logging.error("函数{}接收到参数{}:".format(
+        logging.error(u"函数{}接收到参数{}:".format(
             get_current_function_name(), locals()))
 
 
 def worker():
     while True:
         tasks = q.get()
-        js = apiRep(tasks)
+        js = apiRep(tasks, gap=5)
         if js:
             saveJson(js)
             q.task_done()
         else:
             q.task_done()
-            logging.error("异常任务:{}".format('\n'.join(tasks)))
+            logging.error(u"异常任务:{}".format('\n'.join(tasks)))
 
 
 @functime
@@ -167,8 +168,9 @@ def main():
         f = args.file.read().splitlines()
         batchSize = 1
         for i in range(0, len(f), batchSize):
+            # print(f[i:i+batchSize])
             q.put(f[i:i+batchSize])
-            time.sleep(0.05)
+            time.sleep(2.2)
         q.join()
     except KeyboardInterrupt:
         print("\nWhen Querying {}... User Termined! ".format(i+batchSize))
