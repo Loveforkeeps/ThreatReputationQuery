@@ -131,9 +131,13 @@ def apiRep(tasklist, retry=5, gap=0.5):
                                        content["response_status"]['detail']))
             return False
     else:
-        print("Response {}: Retry...{}....".format(res[0], tasklist[0]))
-        time.sleep(1)
-        return apiRep(tasklist)
+        if retry > 0:
+            print("Response {}: Retry...{}....".format(res[0], tasklist[0]))
+            time.sleep(1)
+            return apiRep(tasklist, retry - 1)
+        else:
+            print(u"请求异常")
+            return False
         # print(res)
 
 
