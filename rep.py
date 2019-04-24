@@ -4,7 +4,7 @@
 
 
 import json
-import sys
+import sys,os
 import io
 import argparse
 import csv
@@ -132,11 +132,12 @@ def apiRep(tasklist, retry=5, gap=0.5):
             return False
     else:
         if retry > 0:
-            print("Response {}: Retry...{}....".format(res[0], tasklist[0]))
+            print("Response {}: Retry...{}....".format(res, tasklist[0]))
             time.sleep(1)
             return apiRep(tasklist, retry - 1)
         else:
             print(u"请求异常")
+            os._exit(1)
             return False
         # print(res)
 
