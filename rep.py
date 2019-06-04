@@ -127,8 +127,12 @@ def apiRep(tasklist, retry=5, gap=0.5):
                     get_current_function_name(), tasklist))
                 return False
         else:
-            print(u"查询:{}异常:{}".format(','.join(tasklist),
+            try:
+                print(u"查询:{}异常:{}".format(','.join(tasklist),
                                        content["response_status"]['detail']))
+            except expression as e:
+                print("云端异常返回:")
+                pprint(content)
             return False
     else:
         if retry > 0:
