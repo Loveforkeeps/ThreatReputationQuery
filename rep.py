@@ -130,7 +130,7 @@ def apiRep(tasklist, retry=5, gap=0.5):
             try:
                 print(u"查询:{}异常:{}".format(','.join(tasklist),
                                        content["response_status"]['detail']))
-            except expression as e:
+            except Exception as e:
                 print("云端异常返回:")
                 pprint(content)
             return False

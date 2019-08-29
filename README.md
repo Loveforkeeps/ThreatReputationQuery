@@ -67,3 +67,9 @@ Run time is 0 minutes 1 seconds!
 
 ### ToDo:
 * 在云端API允许的情况下用多线程提高查询效率
+
+
+
+### Issure Log:
+
+* 针对window平台运行脚本云端返回异常消息为乱码，可以暂时按照返回信息码code的编号去API手册里查
