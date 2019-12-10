@@ -47,25 +47,6 @@ logging.basicConfig(
 def get_current_function_name():
     return inspect.stack()[1][3]
 
-
-# 接受用户端参数
-parser = argparse.ArgumentParser(
-    description=u"API信誉查询工具", add_help=True, version="Beta2.1")
-parser.add_argument('-f', '--file', type=argparse.FileType('r'),
-                    required=True, help='select a task file')
-parser.add_argument(
-    '-t', '--type', choices=["ip", "domain", "url"], required=True, help='select a task type')
-parser.add_argument('-o', '--output', type=str,
-                    help='specify the output file path and name')
-# parser.add_argument('-a', '--all', action='store_true',
-#                     help="output all query results")
-args = parser.parse_args()
-
-if not args.output:
-    args.output = args.file.name+".json"
-else:
-    args.output = args.output+".json"
-
 q = Queue(5)
 threadLock = threading.Lock()
 
@@ -195,6 +176,25 @@ def main():
 
 
 if __name__ == '__main__':
+
+    # 接受用户端参数
+    parser = argparse.ArgumentParser(
+        description=u"API信誉查询工具", add_help=True, version="Beta2.1")
+    parser.add_argument('-f', '--file', type=argparse.FileType('r'),
+                        required=True, help='select a task file')
+    parser.add_argument(
+        '-t', '--type', choices=["ip", "domain", "url"], required=True, help='select a task type')
+    parser.add_argument('-o', '--output', type=str,
+                        help='specify the output file path and name')
+    # parser.add_argument('-a', '--all', action='store_true',
+    #                     help="output all query results")
+    args = parser.parse_args()
+
+    if not args.output:
+        args.output = args.file.name+".json"
+    else:
+        args.output = args.output+".json"
+    
     manager = Manager()
     ml = manager.list()
     main()

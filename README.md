@@ -2,6 +2,8 @@
 
 基于[威胁情报厂商服务平台API]( https://redqueen.tj-un.comAPI)的信誉查询系统
 
+**Attention：**本工具非官方版本，仅供参考。
+
 
 ## Installing
 
@@ -9,7 +11,7 @@
 git clone https://github.com/Loveforkeeps/DopmainReputationQuery
 ```
 
-根据API说明在config文件中填入相关参数
+根据官方API说明在config文件中填入相关参数
 
 
 
@@ -21,7 +23,7 @@ The recommended version for Python is **2.7.x*
 
 ## Using ThreatReputationQuery
 
-```shell
+```less
 # python Rep.py -h
 
 usage: rep.py [-h] [-v] -f FILE -t {ip,domain,url} [-o OUTPUT]
@@ -30,7 +32,7 @@ API信誉查询工具
 
 optional arguments:
   -h, --help            show this help message and exit
-  -v, --version         show program's version number and exit
+  -v, --version         show program version number and exit
   -f FILE, --file FILE  select a task file
   -t {ip,domain,url}, --type {ip,domain,url}
                         select a task type
@@ -47,7 +49,7 @@ optional arguments:
 
 ### Example:
 
-```
+```less
 # ./rep.py -f task.txt -t domain -o result/123
 01.android2-phone.ujint.cn
 02.bd-pcgame.xiazai24.com
