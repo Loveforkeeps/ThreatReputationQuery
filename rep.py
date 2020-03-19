@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 # Author: Erdog
 
-
 import json
-import sys,os
+import sys, os
 import io
 import argparse
 import csv
@@ -12,9 +11,9 @@ from pprint import pprint
 import datetime
 import threading
 from threading import Thread
-from multiprocessing import Manager
+from multiprocessing.managers import SyncManager
+import signal
 import time
-
 
 # Python版本识别
 if sys.version > '3':
@@ -40,12 +39,16 @@ import inspect
 
 # logging.basicConfig(
 #     filename="{}.log".format(''.join(__file__.split('.')[:-1])), filemode='w', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-logging.basicConfig(
-    filename="{}.log".format(''.join(__file__.split('.')[:-1])), filemode='w', format='%(message)s', level=logging.DEBUG)
+logging.basicConfig(filename="{}.log".format(''.join(
+    __file__.split('.')[:-1])),
+                    filemode='w',
+                    format='%(message)s',
+                    level=logging.DEBUG)
 
 
 def get_current_function_name():
     return inspect.stack()[1][3]
+
 
 q = Queue(5)
 threadLock = threading.Lock()
@@ -64,8 +67,11 @@ with io.open("config", "r", encoding="utf8") as f:
         exit(0)
 
 cli = client.DefaultClient(app_key=APPKEY, app_secret=APPSECRET)
-req_post = request.Request(
-    host=HOST, protocol=constant.HTTPS, url=URL, method="POST", time_out=120)
+req_post = request.Request(host=HOST,
+                           protocol=constant.HTTPS,
+                           url=URL,
+                           method="POST",
+                           time_out=120)
 
 
 def functime(func):
@@ -73,7 +79,9 @@ def functime(func):
         local_time = datetime.datetime.now()
         func(*args, **kw)
         times = (datetime.datetime.now() - local_time).seconds
-        print('Run time is {} minutes {} seconds!'.format(times/60, times % 60))
+        print('Run time is {} minutes {} seconds!'.format(
+            times / 60, times % 60))
+
     return wap
 
 
@@ -109,8 +117,8 @@ def apiRep(tasklist, retry=5, gap=0.5):
                 return False
         else:
             try:
-                print(u"查询:{}异常:{}".format(','.join(tasklist),
-                                       content["response_status"]['detail']))
+                print(u"查询:{}异常:{}".format(
+                    ','.join(tasklist), content["response_status"]['detail']))
             except Exception as e:
                 print("云端异常返回:")
                 pprint(content)
@@ -133,8 +141,8 @@ def saveJson(jsondata):
         if jsondata:
             ml.append(jsondata)
     except Exception as e:
-        logging.error(u"函数{}接收到参数{}:".format(
-            get_current_function_name(), locals()))
+        logging.error(u"函数{}接收到参数{}:".format(get_current_function_name(),
+                                             locals()))
 
 
 def worker():
@@ -159,11 +167,11 @@ def main():
         batchSize = 1
         for i in range(0, len(f), batchSize):
             # print(f[i:i+batchSize])
-            q.put(f[i:i+batchSize])
+            q.put(f[i:i + batchSize])
             time.sleep(2.2)
         q.join()
     except KeyboardInterrupt:
-        print("\nWhen Querying {}... User Termined! ".format(i+batchSize))
+        print("\nWhen Querying {}... User Termined! ".format(i + batchSize))
         return 127
     finally:
         # 最终结果存储
@@ -178,23 +186,45 @@ def main():
 if __name__ == '__main__':
 
     # 接受用户端参数
-    parser = argparse.ArgumentParser(
-        description=u"API信誉查询工具", add_help=True, version="Beta2.1")
-    parser.add_argument('-f', '--file', type=argparse.FileType('r'),
-                        required=True, help='select a task file')
-    parser.add_argument(
-        '-t', '--type', choices=["ip", "domain", "url"], required=True, help='select a task type')
-    parser.add_argument('-o', '--output', type=str,
-                        help='specify the output file path and name')
-    # parser.add_argument('-a', '--all', action='store_true',
-    #                     help="output all query results")
+    parser = argparse.ArgumentParser(description=u"API信誉查询工具",
+                                     add_help=True,
+                                     version="Beta2.1")
+    parser.add_argument('-f',
+                        '--file',
+                        type=argparse.FileType('r'),
+                        required=True,
+                        help='select a task file')
+    parser.add_argument('-t',
+                        '--type',
+                        choices=["ip", "domain", "url"],
+                        required=True,
+                        help='Select a task type')
+    parser.add_argument('-o',
+                        '--output',
+                        type=str,
+                        help='Specify the output file path and name')
+    parser.add_argument('-i',
+                        '--interval',
+                        type=float,
+                        default=2.2,
+                        help="Query interval")
     args = parser.parse_args()
 
     if not args.output:
-        args.output = args.file.name+".json"
+        args.output = args.file.name + ".json"
     else:
-        args.output = args.output+".json"
-    
-    manager = Manager()
+        args.output = args.output + ".json"
+
+    #handle SIGINT from SyncManager object
+    def mgr_sig_handler(signal, frame):
+        print 'not closing the mananer'
+
+    def mgr_init():
+        signal.signal(signal.SIGINT, mgr_sig_handler)
+        #signal.signal(signal.SIGINT, signal.SIG_IGN) # <- OR do this to just ignore the signal
+        print 'initialized mananger'
+
+    manager = SyncManager()
+    manager.start(mgr_init)
     ml = manager.list()
     main()

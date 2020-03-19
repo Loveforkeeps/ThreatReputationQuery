@@ -67,6 +67,12 @@ Run time is 0 minutes 1 seconds!
 
 
 
+## Update:
+
+* 2020-03-19 修复中断导致的Manger socket.error
+
+
+
 ### ToDo:
 * 在云端API允许的情况下用多线程提高查询效率
 
@@ -75,3 +81,4 @@ Run time is 0 minutes 1 seconds!
 ### Issure Log:
 
 * 针对window平台运行脚本云端返回异常消息为乱码，可以暂时按照返回信息码code的编号去API手册里查
+
