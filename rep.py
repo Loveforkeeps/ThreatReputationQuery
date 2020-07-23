@@ -11,8 +11,6 @@ from pprint import pprint
 import datetime
 import threading
 from threading import Thread
-from multiprocessing.managers import SyncManager
-import signal
 import time
 
 # Python版本识别
@@ -51,7 +49,6 @@ def get_current_function_name():
 
 
 q = Queue(5)
-threadLock = threading.Lock()
 
 HOST = "https://api.tj-un.com"
 URL = "/v1/reputation"
@@ -168,7 +165,7 @@ def main():
         for i in range(0, len(f), batchSize):
             # print(f[i:i+batchSize])
             q.put(f[i:i + batchSize])
-            time.sleep(2.2)
+            time.sleep(args.interval)
         q.join()
     except KeyboardInterrupt:
         print("\nWhen Querying {}... User Termined! ".format(i + batchSize))
@@ -178,6 +175,8 @@ def main():
         with open(args.output, 'w') as f:
             fl = '\n'.join(list(ml))
             f.writelines(fl)
+        print(u"共查询到:\t{} 条结果".format(len(ml)))
+        print(u"结果保存在:\t{}".format(args.output))
     if q.empty():
         print("Task Over!")
         return 0
@@ -215,16 +214,5 @@ if __name__ == '__main__':
     else:
         args.output = args.output + ".json"
 
-    #handle SIGINT from SyncManager object
-    def mgr_sig_handler(signal, frame):
-        print 'not closing the mananer'
-
-    def mgr_init():
-        signal.signal(signal.SIGINT, mgr_sig_handler)
-        #signal.signal(signal.SIGINT, signal.SIG_IGN) # <- OR do this to just ignore the signal
-        print 'initialized mananger'
-
-    manager = SyncManager()
-    manager.start(mgr_init)
-    ml = manager.list()
+    ml = list()
     main()
