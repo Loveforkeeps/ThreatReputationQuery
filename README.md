@@ -1,6 +1,6 @@
 ## About ThreatReputationQuery
 
-基于[威胁情报厂商服务平台API]( https://redqueen.tj-un.comAPI)的信誉查询系统
+基于[威胁情报厂商服务平台API]( https://redqueen.tj-un.com)的信誉查询系统
 
 **Attention：** 本工具非官方版本，仅供参考。
 
